@@ -30,11 +30,13 @@ def run_mask_ips(text: str) -> tuple[str, int]:
 
 
 def run_classify_nsfw(text: str) -> tuple[Any, float]:
-    raise NotImplementedError
+    from cs336_data.filter_cc.harmful_content import classify_nsfw
+    return classify_nsfw(text)
 
 
 def run_classify_toxic_speech(text: str) -> tuple[Any, float]:
-    raise NotImplementedError
+    from cs336_data.filter_cc.harmful_content import classify_toxic
+    return classify_toxic(text)
 
 
 def run_classify_quality(text: str) -> tuple[Any, float]:
@@ -42,7 +44,8 @@ def run_classify_quality(text: str) -> tuple[Any, float]:
 
 
 def run_gopher_quality_filter(text: str) -> bool:
-    raise NotImplementedError
+    from cs336_data.filter_cc.gopher_quality_filters import gopher_quality_filter
+    return gopher_quality_filter(text)
 
 
 def run_exact_line_deduplication(

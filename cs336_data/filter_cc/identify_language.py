@@ -8,13 +8,13 @@ from cs336_data.filter_cc.extract_text import extract_text_from_html_bytes
 
 
 def identify_language(text: str) -> tuple[Any, float]:
-    model = load_model("data/lid/lid.176.bin")
+    model = load_model("data/classifiers/lid.176.bin")
     r = model.predict(text.replace("\n", ""), k=3)
     lingid = r[0][0].removeprefix("__label__")
     return (lingid, r[1][0])
 
 
-def warc_extraction(warc_file: str = "data/CC/example.warc.gz"):
+def warc_lang(warc_file: str = "data/CC/example.warc.gz"):
     count = 20
     for record in ArchiveIterator(
         open(warc_file, "rb"),
@@ -29,4 +29,4 @@ def warc_extraction(warc_file: str = "data/CC/example.warc.gz"):
 
 
 if __name__ == "__main__":
-    warc_extraction()
+    warc_lang()

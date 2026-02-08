@@ -26,4 +26,12 @@ masked as
 http://www.56.com/n_v162_/c50_/22_/19_/lily_zl_/|||PHONE_NUMBER|||12hd_/648000_/0_/49549788.swf
 ```
 
+## harmful_content
+3. apply nsfw and toxic filter will cause distribution shift and semantic loss. mitigations include using graded or soft labels instead of hard removal, adding context-aware review.
 
+4. many calssify error like the first page's title and got "non-nsfw" with 1.0 confidence, the classifier seems not works with chinese.
+
+## gopher_quality_filters
+2. the `USNCCM 13` page is filter out by mean length 2.73 < 3.0, but i think the quality is ok.
+
+## 
