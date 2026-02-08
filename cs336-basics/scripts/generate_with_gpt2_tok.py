@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 
-import typer
 import torch
-from transformers import AutoTokenizer
+import typer
+from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 from cs336_basics.model import BasicsTransformerLM
 

@@ -1,7 +1,14 @@
+# pyright: reportPossiblyUnboundVariable=none
 import os
 
 import torch
 import torch.distributed as dist
+
+try:
+    from torch_npu import npu
+    HAS_NPU = True
+except ImportError:
+    HAS_NPU = False
 
 
 def _setup_process_group(rank, world_size, backend):
@@ -17,6 +24,15 @@ def _setup_process_group(rank, world_size, backend):
         else:
             raise ValueError("Unable to find CUDA devices.")
         device = f"cuda:{local_rank}"
+    elif HAS_NPU and npu.is_available():
+        device_count = npu.device_count()
+        local_rank = None
+        if device_count > 0:
+            local_rank = rank % device_count
+            npu.set_device(local_rank)
+        else:
+            raise ValueError("Unable to find NPU devices.")
+        device = f"npu:{local_rank}"
     else:
         device = "cpu"
     # initialize the process group

@@ -1,13 +1,10 @@
 
-from pathlib import Path
-from omegaconf import OmegaConf
-
-
 from dataclasses import dataclass, field
-
+from pathlib import Path
 
 from hydra.core.config_store import ConfigStore
-from omegaconf import MISSING
+from omegaconf import MISSING, OmegaConf
+
 
 @dataclass
 class PathsConfig:
@@ -32,7 +29,7 @@ class TrainingConfig:
     seed: int = 0
     dtype: str = "bfloat16"
     train_batch_size: int = 128
-    eval_batch_size: int = "${training.train_batch_size}"
+    eval_batch_size: int = int("${training.train_batch_size}")
     train_steps: int = 100_000
     gradient_accumulation_steps: int = 1
     compile: bool = True

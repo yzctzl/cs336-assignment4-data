@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=none, reportPossiblyUnboundVariable=none
 """
 Train a language model on one or multiple GPUs.
 
@@ -26,12 +27,14 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import cast
 
 import hydra
 import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn.functional as F
+import wandb
 from omegaconf import OmegaConf
 from rich.pretty import pprint as pprint
 from rich.traceback import install
@@ -39,7 +42,6 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 from tqdm import tqdm, trange
 
-import wandb
 from cs336_basics.data import get_batch
 from cs336_basics.model import BasicsTransformerLM
 from cs336_basics.optimizer import get_cosine_lr
@@ -62,7 +64,7 @@ def main(cfg: Config) -> None:
 
     # Take defaults
     default_cfg = OmegaConf.structured(Config())
-    cfg = OmegaConf.merge(default_cfg, cfg_dict)
+    cfg = OmegaConf.merge(default_cfg, cfg_dict)  # pyright: ignore[reportAssignmentType]
 
     train_data = np.memmap(cfg.paths.train_bin, dtype=np.uint16, mode="r")
     dev_data = np.memmap(cfg.paths.valid_bin, dtype=np.uint16, mode="r")
@@ -138,14 +140,14 @@ def main(cfg: Config) -> None:
     if is_master_process:
         logger.info(f"Using dtype: {torch_dtype}")
 
-    amp_ctx = torch.amp.autocast(device_type="cuda", dtype=torch_dtype)
+    amp_ctx = torch.autocast(device_type="cuda", dtype=torch_dtype)
 
     # Move model to the device
     model = model.to(cfg.training.device)
 
     # compile the model, requires torch 2.0
     if cfg.training.compile:
-        model = torch.compile(model)
+        model = cast(torch.nn.Module, torch.compile(model))
 
     if is_ddp:
         model = DDP(model, device_ids=[ddp_local_rank])

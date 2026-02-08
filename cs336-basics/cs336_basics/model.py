@@ -27,7 +27,6 @@ from jaxtyping import Float, Int
 from torch import Tensor
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -95,6 +94,7 @@ class RotaryEmbedding(nn.Module):
 
         # Standard
         # cos, sin = self._freq_cis_cache[:, pos_ids, :]
+        self._freq_cis_cache: torch.Tensor
 
         # einx
         cos, sin = einx.get_at("cos_sin [pos] half_dim, ... -> cos_sin ... half_dim", self._freq_cis_cache, pos_ids)
@@ -102,8 +102,8 @@ class RotaryEmbedding(nn.Module):
         # 2D rotation matrix applied to pairs in x
         x1_rot = cos * x1 - sin * x2
         x2_rot = sin * x1 + cos * x2
-        result = einx.rearrange("... x_half, ... x_half -> ... (x_half (1 + 1))", x1_rot, x2_rot).contiguous()
-        return result
+        result = einx.rearrange("... x_half, ... x_half -> ... (x_half (1 + 1))", x1_rot, x2_rot)
+        return result.contiguous()  # pyright: ignore[reportAttributeAccessIssue]
 
     def extra_repr(self):
         return f"context_length={self._freq_cis_cache.shape[0]}, dim/2={self._freq_cis_cache.shape[1]}"
@@ -422,7 +422,7 @@ class CausalMultiHeadSelfAttention(nn.Module):
         )  # fmt: skip
 
         if token_positions is None:
-            token_positions = einx.rearrange(
+            token_positions = einx.rearrange(  # pyright: ignore[reportAssignmentType]
                 "seq -> b... seq", torch.arange(sequence_length, device=x.device), b=[1] * len(b)
             )
 
