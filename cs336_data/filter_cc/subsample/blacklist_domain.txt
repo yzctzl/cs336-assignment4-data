@@ -1,0 +1,49 @@
+# Social Media & Community
+facebook.com
+twitter.com
+x.com
+instagram.com
+tiktok.com
+linkedin.com
+pinterest.com
+reddit.com
+tumblr.com
+snapchat.com
+weibo.com
+vk.com
+
+# UGC & Video Platforms
+youtube.com
+youtu.be
+vimeo.com
+dailymotion.com
+twitch.tv
+bilibili.com
+
+# Shortlinks & Web Archives
+bit.ly
+t.co
+goo.gl
+tinyurl.com
+ow.ly
+is.gd
+buff.ly
+archive.org
+web.archive.org
+webcache.googleusercontent.com
+
+# Major Commercial & Search Noise
+amazon.com
+ebay.com
+aliexpress.com
+shopify.com
+google.com
+bing.com
+yahoo.com
+duckduckgo.com
+
+# Cloud Storage & File Sharing
+dropbox.com
+drive.google.com
+mediafire.com
+mega.nz

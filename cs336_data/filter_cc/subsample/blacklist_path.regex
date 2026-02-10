@@ -1,0 +1,8 @@
+# Exclude utility pages (auth, commerce, search)
+/(?:login|signin|signup|register|logout|auth|session|cart|checkout|search|download|share)
+
+# Exclude tracking and redirection parameters
+(?:\?|&)(?:session|token|redirect)
+
+# Exclude binaries and non-text documents
+\.(?:pdf|zip|rar|exe|dmg|xlsx?|docx?)$

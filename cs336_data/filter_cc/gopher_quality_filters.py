@@ -1,3 +1,4 @@
+import regex as re
 from fastwarc.warc import ArchiveIterator, WarcRecordType
 from nltk.tokenize import word_tokenize
 from numpy import mean
@@ -26,12 +27,13 @@ _NLTK_SUPPORTED_LANGUAGES = {
     "tr": "turkish",
 }
 
+_WORD_PATTERN = re.compile(r'\w+')
 
-def gopher_quality_filter(text: str) -> bool:
-    langid, _ = identify_language(text)
-    if langid not in _NLTK_SUPPORTED_LANGUAGES:
-        raise NotImplementedError
-    words = word_tokenize(text, language=_NLTK_SUPPORTED_LANGUAGES[langid])
+def gopher_quality_filter(text: str, langid: str = "en", nltk_token: bool = True) -> bool:
+    if not nltk_token:
+        words = _WORD_PATTERN.findall(text)
+    else:
+        words = word_tokenize(text, language=_NLTK_SUPPORTED_LANGUAGES[langid])
 
     # rule 1: Contain less than 50 or more than 100,000 words
     if len(words) < 50 or len(words) > 100000:
@@ -42,7 +44,7 @@ def gopher_quality_filter(text: str) -> bool:
     if mean_lenth < 3 or mean_lenth > 10:
         return False
 
-    # rule 3: Have more than 30% of lines ending with an ellipsis (“...”).
+    # rule 3: Have more than 30% of lines ending with an ellipsis ("...").
     lines = text.splitlines()
     ellipsis_count = sum(line.strip().endswith("...") for line in lines)
     if ellipsis_count >= len(lines) * 0.3:
