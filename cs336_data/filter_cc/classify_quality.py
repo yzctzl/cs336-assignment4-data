@@ -1,6 +1,6 @@
 from fasttext.FastText import load_model
 
-model = load_model("data/classifiers/wiki_vs_cc.bin")
+model = load_model("data/classifiers/wiki_vs_cc.ftz")
 
 
 def classify_quality(text: str) -> tuple[str, float]:
