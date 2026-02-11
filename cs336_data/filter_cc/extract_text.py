@@ -3,10 +3,16 @@ from resiliparse.extract.html2text import extract_plain_text
 from resiliparse.parse.encoding import bytes_to_str, detect_encoding
 
 
-def extract_text_from_html_bytes(html_bytes: bytes) -> str:
+def extract_text_from_html_bytes(html_bytes: bytes, main_content: bool = False) -> str:
     """takes a byte string containing HTML and returns a string containing the extracted text"""
     decoded = bytes_to_str(html_bytes, detect_encoding(html_bytes))
-    return extract_plain_text(decoded, main_content=True, alt_texts=False, preserve_formatting=False, noscript=True)
+    if main_content:
+        plain_text = extract_plain_text(
+            decoded, main_content=True, alt_texts=False, preserve_formatting=False, noscript=True
+        )
+    else:
+        plain_text = extract_plain_text(decoded)
+    return plain_text
 
 
 def warc_extraction(warc_file: str = "data/CC/example.warc.gz"):
