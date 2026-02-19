@@ -117,17 +117,23 @@ def normalize_text(text):
     return text.strip()
 
 
-def build_ngrams(path: os.PathLike, n: int):
+def build_ngrams(path: os.PathLike, n: int, text_preprocessor=None):
     """Worker: read file -> normalize -> extract ngrams (for Jaccard verification)."""
     with open(path, encoding="utf-8", errors="ignore") as f:
-        text = normalize_text(f.read())
+        text = f.read()
+    if text_preprocessor:
+        text = text_preprocessor(text)
+    text = normalize_text(text)
     return path, extract_ngrams(text, n)
 
 
-def build_signature(path: os.PathLike, n: int, num_hashes: int):
+def build_signature(path: os.PathLike, n: int, num_hashes: int, text_preprocessor=None):
     """Worker: read file -> normalize -> extract ngrams -> compute signature."""
     with open(path, encoding="utf-8", errors="ignore") as f:
-        text = normalize_text(f.read())
+        text = f.read()
+    if text_preprocessor:
+        text = text_preprocessor(text)
+    text = normalize_text(text)
     ngrams = extract_ngrams(text, n)
     sig = compute_minhash(ngrams, num_hashes)
     return path, sig
@@ -152,14 +158,33 @@ def minhash_deduplication(
     ngrams: int,
     jaccard_threshold: float,
     output_directory: os.PathLike,
-    num_workers: int = len(os.sched_getaffinity(0)),
+    num_workers: int = None,
+    text_preprocessor=None,
 ):
-    """MinHash deduplication"""
+    """
+    MinHash deduplication with optional text preprocessing.
+    
+    Args:
+        input_files: List of input file paths
+        num_hashes: Number of hash functions for MinHash
+        num_bands: Number of bands for LSH
+        ngrams: N-gram size
+        jaccard_threshold: Jaccard similarity threshold
+        output_directory: Output directory path
+        num_workers: Number of parallel workers (default: CPU count)
+        text_preprocessor: Optional function to preprocess text before normalization
+    """
+    if num_workers is None:
+        num_workers = len(os.sched_getaffinity(0))
+    
     out_dir = Path(output_directory)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # streaming build signatures in parallel
-    signatures = parallel_stream_process(build_signature, input_files, num_workers, n=ngrams, num_hashes=num_hashes)
+    signatures = parallel_stream_process(
+        build_signature, input_files, num_workers, 
+        n=ngrams, num_hashes=num_hashes, text_preprocessor=text_preprocessor
+    )
 
     # LSH bucketing
     candidate_pairs = find_lsh_candidates(signatures, num_bands, num_hashes)
@@ -168,7 +193,10 @@ def minhash_deduplication(
     if candidate_pairs:
         # compute n-grams only for candidate files
         candidate_files = {f for pair in candidate_pairs for f in pair}
-        ngrams_map = parallel_stream_process(build_ngrams, candidate_files, num_workers, n=ngrams)
+        ngrams_map = parallel_stream_process(
+            build_ngrams, candidate_files, num_workers, 
+            n=ngrams, text_preprocessor=text_preprocessor
+        )
 
         # verify and cluster
         to_remove = cluster_duplicates(candidate_pairs, ngrams_map, jaccard_threshold)
@@ -178,3 +206,5 @@ def minhash_deduplication(
         if path not in to_remove:
             with open(path, "rb") as src:
                 (out_dir / Path(path).name).write_bytes(src.read())
+    
+    return len(input_files) - len(to_remove), len(to_remove)
