@@ -33,6 +33,7 @@ import hydra
 import numpy as np
 import numpy.typing as npt
 import torch
+import torch_npu
 import torch.nn.functional as F
 import wandb
 from omegaconf import OmegaConf
@@ -51,8 +52,15 @@ register_configs()
 
 logger = logging.getLogger(__name__)
 
-if torch.cuda.is_available():
+# Check device availability
+if hasattr(torch, 'npu') and torch.npu.is_available():
     torch.set_float32_matmul_precision("high")
+    logger.info("Using Ascend NPU")
+elif torch.cuda.is_available():
+    torch.set_float32_matmul_precision("high")
+    logger.info("Using NVIDIA CUDA")
+else:
+    logger.warning("No GPU/NPU detected, using CPU")
 
 install(show_locals=True)
 
@@ -82,17 +90,26 @@ def main(cfg: Config) -> None:
     # Wrap model in DDP, if we're using it.
     is_ddp = int(os.environ.get("RANK", -1)) != -1
     if is_ddp:
-        init_process_group(backend="nccl")
+        # Detect backend: hccl for Ascend NPU, nccl for NVIDIA GPU
+        has_npu = hasattr(torch, 'npu') and torch.npu.is_available()
+        backend = "hccl" if has_npu else "nccl"
+        init_process_group(backend=backend)
         ddp_rank = int(os.environ["RANK"])
         ddp_local_rank = int(os.environ["LOCAL_RANK"])
         ddp_world_size = int(os.environ["WORLD_SIZE"])
-        device = f"cuda:{ddp_local_rank}"
-        torch.cuda.set_device(device)
+        
+        if has_npu:
+            device = f"npu:{ddp_local_rank}"
+            torch.npu.set_device(device)
+        else:
+            device = f"cuda:{ddp_local_rank}"
+            torch.cuda.set_device(device)
+            
         seed = cfg.training.seed + ddp_rank  # each process gets a different seed
         # Rank 0 does logging, file creation, etc.
         is_master_process = ddp_rank == 0
         if is_master_process:
-            logger.info("Using DDP")
+            logger.info(f"Using DDP with backend: {backend}")
     else:
         seed = cfg.training.seed
         ddp_world_size = 1
@@ -115,6 +132,7 @@ def main(cfg: Config) -> None:
                 project=cfg.training.wandb_project,
                 config=OmegaConf.to_container(cfg, resolve=True),
                 name=cfg.paths.model_output.name,
+                mode="offline",
             )
 
     # Seed each process differently so we can be sure that they
@@ -140,7 +158,10 @@ def main(cfg: Config) -> None:
     if is_master_process:
         logger.info(f"Using dtype: {torch_dtype}")
 
-    amp_ctx = torch.autocast(device_type="cuda", dtype=torch_dtype)
+    # Use appropriate device type for autocast
+    has_npu = hasattr(torch, 'npu') and torch.npu.is_available()
+    device_type = "npu" if has_npu else "cuda"
+    amp_ctx = torch.autocast(device_type=device_type, dtype=torch_dtype)
 
     # Move model to the device
     model = model.to(cfg.training.device)
